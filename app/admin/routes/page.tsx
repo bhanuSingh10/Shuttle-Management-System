@@ -201,7 +201,7 @@ export default function RoutesManagementPage() {
                       <span className="text-sm text-gray-600">Peak Multiplier</span>
                       <Badge>{route.dynamicFare.peak}x</Badge>
                     </div>
-                    <Button
+                    {/* <Button
                       variant="outline"
                       size="sm"
                       className="w-full"
@@ -209,7 +209,7 @@ export default function RoutesManagementPage() {
                     >
                       <MapPin className="h-4 w-4 mr-2" />
                       View Details
-                    </Button>
+                    </Button> */}
                   </div>
                 </CardContent>
               </Card>
