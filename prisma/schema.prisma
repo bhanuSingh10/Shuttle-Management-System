@@ -1,0 +1,156 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  STUDENT
+}
+
+model User {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  passwordHash String
+  role         Role
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  wallet       Wallet?
+  bookings     Booking[]
+
+  @@map("users")
+}
+
+model Route {
+  id          String     @id @default(uuid())
+  name        String
+  peakHours   Json       // Array of time ranges when peak pricing applies
+  dynamicFare Json       // Pricing multipliers by time window
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  stops       Stop[]
+  vehicles    Vehicle[]
+  schedules   Schedule[]
+  bookings    Booking[]
+
+  @@map("routes")
+}
+
+model Stop {
+  id                    String               @id @default(uuid())
+  name                  String
+  latitude              Float
+  longitude             Float
+  routeId               String
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+  route                 Route                @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  fromBookings          Booking[]            @relation("FromStop")
+  toBookings            Booking[]            @relation("ToStop")
+  transferSuggestions   TransferSuggestion[]
+
+  @@map("stops")
+}
+
+model Vehicle {
+  id        String     @id @default(uuid())
+  plateNo   String     @unique
+  capacity  Int
+  routeId   String
+  driverId  String?
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  route     Route      @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  driver    Driver?    @relation(fields: [driverId], references: [id])
+  schedules Schedule[]
+
+  @@map("vehicles")
+}
+
+model Driver {
+  id        String    @id @default(uuid())
+  name      String
+  licenseNo String    @unique
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  vehicles  Vehicle[]
+
+  @@map("drivers")
+}
+
+model Schedule {
+  id        String    @id @default(uuid())
+  routeId   String
+  vehicleId String
+  departure DateTime
+  arrival   DateTime
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  route     Route     @relation(fields: [routeId], references: [id], onDelete: Cascade)
+  vehicle   Vehicle   @relation(fields: [vehicleId], references: [id], onDelete: Cascade)
+  bookings  Booking[]
+
+  @@map("schedules")
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  balance   Int      @default(0) // Balance in points/credits
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("wallets")
+}
+
+model Booking {
+  id                  String               @id @default(uuid())
+  userId              String
+  fromStopId          String
+  toStopId            String
+  routeId             String
+  scheduleId          String?
+  pointsDeducted      Int
+  fareCharged         Float
+  createdAt           DateTime             @default(now())
+  updatedAt           DateTime             @updatedAt
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  fromStop            Stop                 @relation("FromStop", fields: [fromStopId], references: [id])
+  toStop              Stop                 @relation("ToStop", fields: [toStopId], references: [id])
+  route               Route                @relation(fields: [routeId], references: [id])
+  schedule            Schedule?            @relation(fields: [scheduleId], references: [id])
+  transferSuggestions TransferSuggestion[]
+
+  @@map("bookings")
+}
+
+model TransferSuggestion {
+  id             String  @id @default(uuid())
+  bookingId      String
+  transferStopId String
+  description    String
+  createdAt      DateTime @default(now())
+  booking        Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  transferStop   Stop    @relation(fields: [transferStopId], references: [id])
+
+  @@map("transfer_suggestions")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  message   String
+  type      String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@map("notifications")
+}
